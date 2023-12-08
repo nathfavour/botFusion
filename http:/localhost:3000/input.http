@@ -1,8 +1,0 @@
-POST http://localhost:3000/input
-Content-Type: application/json
-
-{
-  "input": "yes"
-}
-
-###
