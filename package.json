@@ -1,0 +1,33 @@
+{
+  "name": "botfusion",
+  "version": "1.0.0",
+  "description": "cli interface for chatbots",
+  "main": "botFusion.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nathfavour/botFusion.git"
+  },
+  "keywords": [
+    "AI"
+  ],
+  "author": "nathfavour",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nathfavour/botFusion/issues"
+  },
+  "homepage": "https://github.com/nathfavour/botFusion#readme",
+  "dependencies": {
+    "axios": "^1.6.2",
+    "express": "^4.18.2",
+    "ini": "^4.1.1",
+    "playwright": "^1.40.0",
+    "selenium-webdriver": "^4.15.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}

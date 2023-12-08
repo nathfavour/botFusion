@@ -1,0 +1,207 @@
+const fs = require('fs');
+const path = require('path');
+const ini = require('ini');
+
+// Get the settings file path from the command-line arguments, or use the default
+const settingsFilePath = process.argv.includes('--settings')
+  ? process.argv[process.argv.indexOf('--settings') + 1]
+  : path.join(__dirname, 'settings.ini');
+
+// If the settings file doesn't exist, create it with the default settings
+if (!fs.existsSync(settingsFilePath)) {
+  fs.writeFileSync(settingsFilePath, 'ioFolder = .\n');
+}
+
+// Read and parse the settings file
+const settings = ini.parse(fs.readFileSync(settingsFilePath, 'utf-8'));
+
+// Get the path to the input folder
+const inputFolderPath = path.join(settings.ioFolder, 'input');
+
+// If the input folder doesn't exist, create it
+if (!fs.existsSync(inputFolderPath)) {
+  fs.mkdirSync(inputFolderPath);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+// Function to process a file
+function processFile(filePath) {
+  // Read and parse the file
+  const fileContents = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
+  // Get the input from the file
+  const currentInput = fileContents.input;
+
+  // Perform actions on currentInput...
+
+  // Append output to the file
+  fs.appendFileSync(filePath, '\n{"output":"output"}');
+
+  // Rename the file to append a "t" at the end of its name
+  fs.renameSync(filePath, `${filePath}t`);
+}
+
+// Function to check for new files in the input folder
+function checkForNewFiles() {
+  // Read all files in the input folder
+  const files = fs.readdirSync(inputFolderPath);
+
+  // For each file that doesn't end with a "t", process the file
+  files.forEach((file) => {
+    if (!file.endsWith('t')) {
+      processFile(path.join(inputFolderPath, file));
+    }
+  });
+
+  // Check for new files again after a delay
+  setTimeout(checkForNewFiles, 1000);
+}
+
+// Start checking for new files
+checkForNewFiles();
+
+
+
+
+
+
+
+
+
+
+const fs = require('fs');
+const { promisify } = require('util');
+const renameAsync = promisify(fs.rename);
+
+async function processFile(page, filePath, textArea) {
+    // Read and parse the file
+    const fileContents = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
+    // Get the input from the file
+    const currentInput = fileContents.input;
+
+    let n = 1;
+    let elements = await page.$$('#app > div.grid.h-full.w-screen.grid-cols-1.grid-rows-[auto,1fr].overflow-hidden.text-smd.dark:text-gray-300.md:grid-cols-[280px,1fr].md:grid-rows-[1fr] > div > div.scrollbar-custom.mr-1.h-full.overflow-y-auto > div > div:nth-child(n)');
+    while (elements.length <= n) {
+        n = elements.length;
+        elements = await page.$$('#app > div.grid.h-full.w-screen.grid-cols-1.grid-rows-[auto,1fr].overflow-hidden.text-smd.dark:text-gray-300.md:grid-cols-[280px,1fr].md:grid-rows-[1fr] > div > div.scrollbar-custom.mr-1.h-full.overflow-y-auto > div > div:nth-child(n)');
+    }
+
+    // In a loop, send input to the textArea element and press Enter
+    await page.waitForSelector(textArea, {state:'visible'});
+    await page.fill(textArea, currentInput);
+    await page.press(textArea, 'Enter');
+
+    // Continuously sample every element and compare its value of n with the previous highest
+    let newElements = await page.$$('#app > div.grid.h-full.w-screen.grid-cols-1.grid-rows-[auto,1fr].overflow-hidden.text-smd.dark:text-gray-300.md:grid-cols-[280px,1fr].md:grid-rows-[1fr] > div > div.scrollbar-custom.mr-1.h-full.overflow-y-auto > div > div:nth-child(n)');
+    while (newElements.length <= n) {
+        newElements = await page.$$('#app > div.grid.h-full.w-screen.grid-cols-1.grid-rows-[auto,1fr].overflow-hidden.text-smd.dark:text-gray-300.md:grid-cols-[280px,1fr].md:grid-rows-[1fr] > div > div.scrollbar-custom.mr-1.h-full.overflow-y-auto > div > div:nth-child(n)');
+    }
+
+    // If n-highest has increased by one, then a new response is on the page
+    if (newElements.length > n) {
+        const lastElement = newElements[newElements.length - 1];
+        const currentResponse = await lastElement.textContent();
+        console.log(currentResponse);
+
+        // Append output to the file
+        fs.appendFileSync(filePath, `\n{"output":${currentResponse}}`);
+
+        // Rename the file to append a "t" at the end of its name
+        await renameAsync(filePath, `${filePath}t`);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const fs = require('fs');
+const { promisify } = require('util');
+const renameAsync = promisify(fs.rename);
+
+async function processFile(page, filePath, nElement, textArea) {
+    // Read and parse the file
+    const fileContents = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
+    // Get the input from the file
+    const currentInput = fileContents.input;
+
+    // Initialize n
+    let n = 0;
+    let elements = await page.$$(nElement.replace('n', n));
+    while (elements.length > 0) {
+        n++;
+        elements = await page.$$(nElement.replace('n', n));
+    }
+
+    // In a loop, send input to the textArea element and press Enter
+    await page.waitForSelector(textArea, {state:'visible'});
+    await page.fill(textArea, currentInput);
+    await page.press(textArea, 'Enter');
+
+    // Continuously sample every element and compare its value of n with the previous highest
+        // Continuously sample every element and compare its value of n with the previous highest
+        let newElements = await page.$$(nElement.replace('n', n));
+        while (newElements.length === 0) {
+            n++;
+            newElements = await page.$$(nElement.replace('n', n));
+        }
+
+        // If n-highest has increased by one, then a new response is on the page
+        if (newElements.length > 0) {
+            const lastElement = newElements[newElements.length - 1];
+            const currentResponse = await lastElement.textContent();
+            console.log(currentResponse);
+
+            // Append output to the file
+            fs.appendFileSync(filePath, `\n{"output":${currentResponse}}`);
+
+            // Rename the file to append a "t" at the end of its name
+            await renameAsync(filePath, `${filePath}t`);
+        }
+    }

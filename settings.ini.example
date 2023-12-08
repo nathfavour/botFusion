@@ -1,0 +1,6 @@
+[DEFAULT]
+ioFolder =
+
+[login]
+username = your_huggingface_username
+password = your_huggingface_password

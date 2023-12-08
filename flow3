@@ -1,0 +1,787 @@
+const { chromium } = require('playwright');
+const axios = require('axios');
+const express = require('express');
+const app = express();
+const fs = require('fs');
+const path = require('path');
+const ini = require('ini');
+// const fs = require('fs');
+const { promisify } = require('util');
+const renameAsync = promisify(fs.rename);
+
+// app.use(express.json());
+
+// Get the settings file path from the command-line arguments, or use the default
+const settingsFilePath = process.argv.includes('--settings')
+    ? process.argv[process.argv.indexOf('--settings') + 1]
+    : path.join(__dirname, 'settings.ini');
+
+// If the settings file doesn't exist, create it with the default settings
+if (!fs.existsSync(settingsFilePath)) {
+    fs.writeFileSync(settingsFilePath, 'ioFolder = .\n');
+}
+
+// Read and parse the settings file
+const settings = ini.parse(fs.readFileSync(settingsFilePath, 'utf-8'));
+
+// Get the path to the input folder
+// const inputFolderPath = path.join(settings.ioFolder, 'input');
+const inputFolderPath = path.join(settings.DEFAULT.ioFolder, 'input');
+
+// If the input folder doesn't exist, create it
+if (!fs.existsSync(inputFolderPath)) {
+    fs.mkdirSync(inputFolderPath);
+}
+
+
+
+
+
+
+
+// let browser, page;
+// let processing = false;
+
+const username = settings.login.username;
+const password = settings.login.password;
+let chatUrl = "huggingface.co/chat"
+let loginUrl = "huggingface.co/login"
+let loginButton = "body > div:nth-child(3) > div > div > div > form > button"
+let usernameElement = "body > div > main > div > section > form > div.mb-8.grid.grid-cols-1.gap-3 > label:nth-child(1) > input"
+let passwordElement = "body > div > main > div > section > form > div.mb-8.grid.grid-cols-1.gap-3 > label:nth-child(2) > input"
+let searchWeb = "#app > div.grid.h-full.w-screen.grid-cols-1.grid-rows-\[auto\,1fr\].overflow-hidden.text-smd.dark\:text-gray-300.md\:grid-cols-\[280px\,1fr\].md\:grid-rows-\[1fr\] > div > div.pointer-events-none.absolute.inset-x-0.bottom-0.z-0.mx-auto.flex.w-full.max-w-3xl.flex-col.items-center.justify-center.md\:px-5.md\:py-8.xl\:max-w-4xl.\[\&\>\*\]\:pointer-events-auto > div.dark\:via-gray-80.w-full.bg-gradient-to-t.from-white.via-white\/80.to-white\/0.dark\:border-gray-800.dark\:from-gray-900.dark\:to-gray-900\/0.max-md\:border-t.max-md\:bg-white.max-md\:px-4.max-md\:dark\:bg-gray-900 > div.flex.w-full.pb-3.max-md\:pt-3 > div > div.relative.inline-flex.h-5.w-9.shrink-0.items-center.rounded-full.bg-gray-300.p-1.shadow-inner.ring-gray-400.transition-all.peer-checked\:bg-blue-600.peer-focus-visible\:ring.peer-focus-visible\:ring-offset-1.hover\:bg-gray-400.dark\:bg-gray-600.peer-checked\:\[\&\>div\]\:translate-x-3\.5 > div"
+let nElement = "#app > div.grid.h-full.w-screen.grid-cols-1.grid-rows-\[auto\,1fr\].overflow-hidden.text-smd.dark\:text-gray-300.md\:grid-cols-\[280px\,1fr\].md\:grid-rows-\[1fr\] > div > div.scrollbar-custom.mr-1.h-full.overflow-y-auto > div > div:nth-child(n)"
+let textArea = "#app > div.grid.h-full.w-screen.grid-cols-1.grid-rows-\[auto\,1fr\].overflow-hidden.text-smd.dark\:text-gray-300.md\:grid-cols-\[280px\,1fr\].md\:grid-rows-\[1fr\] > div > div.pointer-events-none.absolute.inset-x-0.bottom-0.z-0.mx-auto.flex.w-full.max-w-3xl.flex-col.items-center.justify-center.md\:px-5.md\:py-8.xl\:max-w-4xl.\[\&\>\*\]\:pointer-events-auto > div.dark\:via-gray-80.w-full.bg-gradient-to-t.from-white.via-white\/80.to-white\/0.dark\:border-gray-800.dark\:from-gray-900.dark\:to-gray-900\/0.max-md\:border-t.max-md\:bg-white.max-md\:px-4.max-md\:dark\:bg-gray-900 > form > div > div > textarea"
+
+// const browser = await chromium.launch();
+// const context = await browser.newContext();
+// const page = await context.newPage();
+
+
+// app.listen(3000, async () => {
+//     browser = await chromium.launch();
+//     page = await browser.newPage();
+//     await page.goto('https://huggingface.co/chat');
+//     await page.load
+//
+// });
+// async function launchBrowser() {
+//     // const browser = await chromium.launch();
+//     const browser = await chromium.launch();
+//     const context = await browser.newContext();
+//     const page = await context.newPage();
+//     // rest of your code
+// }
+//
+// launchBrowser();
+
+let page;
+
+(async function initializePage() {
+    const browser = await chromium.launch();
+    const context = await browser.newContext();
+    page = await context.newPage();
+})();
+
+// initializePage();
+
+// app.post('/input', async (req, res) => {
+//     if (processing) {
+//         res.status(503).send('Server is busy');
+//         return;
+//     }
+//
+//     processing = true;
+//     const input = req.body.input;
+//
+//     try {
+//         await page.waitForSelector('#firstElement', { state: 'visible' });
+//         await page.click('#firstElement');
+//
+//         await page.waitForSelector('#secondElement', { state: 'visible' });
+//         await page.fill('#secondElement', input);
+//
+//         const output = await page.evaluate(() => {
+//             // Get output from the page...
+//         });
+//
+//         await axios.post('http://localhost:3000/output', { output });
+//
+//         res.status(200).send('Input processed');
+//     } catch (error) {
+//         res.status(500).send('Error processing input');
+//     } finally {
+//         processing = false;
+//     }
+// });
+//
+//
+// process.on('SIGINT', async () => {
+//     await browser.close();
+//     process.exit();
+// });
+
+
+
+
+
+
+
+
+
+// Visit loginUrl
+// await page.goto(loginUrl);
+// await page.waitForLoadState('networkidle');
+//
+// // Wait for the presence of loginButton and click it
+// await page.waitForSelector(loginButton, { state: 'visible' });
+// await page.click(loginButton);
+//
+// // Listen until the current url contains chatUrl
+// // await page.waitForURL(`**/${chatUrl}**`);
+// await page.waitForNavigation({ url: `**/${chatUrl}**` });
+//
+//
+// // Send username string to usernameElement
+// // await page.fill(usernameElement, username)
+//
+// // Send username string to usernameElement
+// await page.waitForSelector(usernameElement, { state: 'visible' });
+// await page.fill(usernameElement, username);
+//
+//
+// // Send password to passwordElement
+// await page.waitForSelector(passwordElement, { state: 'visible' });
+// await page.fill(passwordElement, password);
+// await page.press(passwordElement, 'Enter');
+//
+// // When searchWeb element is clickable, click on it to toggle "search web option"
+// await page.waitForSelector(searchWeb, { state: 'visible' });
+// await page.click(searchWeb);
+
+// // Send password to passwordElement
+// await page.fill(passwordElement, password);
+// await page.press(passwordElement, 'Enter');
+
+
+
+
+async function performActions(page, loginUrl, loginButton, chatUrl, usernameElement, username, passwordElement, password, searchWeb) {
+    // Visit loginUrl
+    await page.goto(loginUrl);
+    await page.waitForLoadState('networkidle');
+
+    // Wait for the presence of loginButton and click it
+    await page.waitForSelector(loginButton, { state: 'visible' });
+    await page.click(loginButton);
+
+    // Listen until the current url contains chatUrl
+    await page.waitForNavigation({ url: `**/${chatUrl}**` });
+
+    // Send username string to usernameElement
+    await page.waitForSelector(usernameElement, { state: 'visible' });
+    await page.fill(usernameElement, username);
+
+    // Send password to passwordElement
+    await page.waitForSelector(passwordElement, { state: 'visible' });
+    await page.fill(passwordElement, password);
+    await page.press(passwordElement, 'Enter');
+
+    // When searchWeb element is clickable, click on it to toggle "search web option"
+    await page.waitForSelector(searchWeb, { state: 'visible' });
+    await page.click(searchWeb);
+}
+
+performActions(page, loginUrl, loginButton, chatUrl, usernameElement, username, passwordElement, password, searchWeb);
+
+// // Send username string to usernameElement
+// await page.waitForSelector(usernameElement, { state: 'visible' });
+// await page.fill(usernameElement, username);
+
+// // When searchWeb element is clickable, click on it to toggle "search web option"
+// await page.waitForSelector(searchWeb, { state: 'visible' });
+// await page.click(searchWeb);
+
+// For each nElement, look for the element with the highest value of "n" and take note of "n"
+// let n = 0;
+// while (true) {
+//     const elements = await page.$$(nElement);
+//     if (elements.length > n) {
+//         n = elements.length;
+//     }
+//
+//     // In a loop, send input to the textArea element and press Enter
+//     await page.waitForSelector(textArea, {state:'visible'});
+//     await page.fill(textArea, currentInput);
+//     await page.press(textArea, 'Enter');
+//
+//     // If n-highest has increased by one, then a new response is on the page
+//     if (elements.length > n) {
+//         const lastElement = elements[elements.length - 1];
+//         const currentResponse = await lastElement.textContent();
+//         console.log(currentResponse);
+//     }
+// }
+
+
+
+
+// Continuously sample every element and compare its value of n with the previous highest
+// let newElements = await page.$$(nElement.replace('n', n));
+// while (newElements.length === 0) {
+//     n++;
+//     newElements = await page.$$(nElement.replace('n', n));
+// }
+
+//
+//
+// let n = 1;
+// while (true) {
+//     const elements = await page.$$(nElement);
+//     if (elements.length > n) {
+//         n = elements.length;
+//     }  }
+
+// Initialize n
+
+
+
+// If n-highest has increased by one, then a new response is on the page
+// if (elements.length > n) {
+//     const lastElement = elements[elements.length - 1];
+//     const currentResponse = await lastElement.textContent();
+//     console.log(currentResponse);
+// }
+
+// Increment the previous highest value of n by 1
+
+// Function to process a file
+async function processFile(filePath) {
+    // Read and parse the file
+    const fileContents = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
+    // Get the input from the file
+    const currentInput = fileContents.input;
+
+    // let n = 0;
+    // let elements = await page.$$(nElement.replace('n', n));
+    // while (elements.length > 0) {
+    //     n++;
+    //     elements = await page.$$(nElement.replace('n', n));
+    // }
+    //
+    // // If elements exist, set n to the highest value of n found in the elements
+    // if (elements.length > 0) {
+    //     n = elements.length;
+    // }
+    //
+
+    // Get all elements that match the nElement selector
+    let elements = await page.$$(nElement.replace('n', '*'));
+
+    // If elements exist, set n to the value of the last element
+    let n = elements.length > 0 ? parseInt(elements[elements.length - 1].id.match(/:nth-child\((\d+)\)/)[1]) : 0;
+
+
+    // In a loop, send input to the textArea element and press Enter
+    await page.waitForSelector(textArea, {state:'visible'});
+    await page.fill(textArea, currentInput);
+    await page.press(textArea, 'Enter');
+
+    // Wait until the page stops updating
+    await page.waitForNavigation({ waitUntil: 'networkidle0' });
+
+    n++;
+
+    // Wait for the presence of an element that matches the nElement selector with the new value of n
+    await page.waitForSelector(nElement.replace('n', n), {state: 'attached'});
+
+    // If the element is present, take its text content as the currentResponse
+    const newElement = await page.$(nElement.replace('n', n));
+    const currentResponse = await newElement.textContent();
+    console.log(currentResponse);
+
+
+    // Append output to the file
+    fs.appendFileSync(filePath, '\n{"output":$$(currentResponse)}');
+
+    // Rename the file to append a "t" at the end of its name
+    fs.renameSync(filePath, `${filePath}t`);
+}
+
+
+
+
+
+
+
+// async function processFile(page, filePath, nElement, textArea) {
+//     // Read and parse the file
+//     const fileContents = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+//
+//     // Get the input from the file
+//     const currentInput = fileContents.input;
+//
+//     let n = 1;
+//     let elements = await page.$$(nElement);
+//     while (elements.length <= n) {
+//         n = elements.length;
+//         elements = await page.$$(nElement);
+//     }
+//
+//     // In a loop, send input to the textArea element and press Enter
+//     await page.waitForSelector(textArea, {state:'visible'});
+//     await page.fill(textArea, currentInput);
+//     await page.press(textArea, 'Enter');
+//
+//     // If n-highest has increased by one, then a new response is on the page
+//     if (elements.length > n) {
+//         const lastElement = elements[elements.length - 1];
+//         const currentResponse = await lastElement.textContent();
+//         console.log(currentResponse);
+//
+//         // Append output to the file
+//         fs.appendFileSync(filePath, `\n{"output":${currentResponse}}`);
+//
+//         // Rename the file to append a "t" at the end of its name
+//         await renameAsync(filePath, `${filePath}t`);
+//     }
+// }
+
+
+
+
+
+
+
+
+// async function processFile(page, filePath, nElement, textArea) {
+//     // Read and parse the file
+//     const fileContents = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+//
+//     // Get the input from the file
+//     const currentInput = fileContents.input;
+//
+//     // Initialize n
+//     let n = 0;
+//     let elements = await page.$$(nElement.replace('n', n));
+//     while (elements.length > 0) {
+//         n++;
+//         elements = await page.$$(nElement.replace('n', n));
+//     }
+//
+//     // In a loop, send input to the textArea element and press Enter
+//     await page.waitForSelector(textArea, {state:'visible'});
+//     await page.fill(textArea, currentInput);
+//     await page.press(textArea, 'Enter');
+//
+//     // Continuously sample every element and compare its value of n with the previous highest
+//
+//     // Continuously sample every element and compare its value of n with the previous highest
+//     let newElements = await page.$$(nElement.replace('n', n));
+//     while (newElements.length === 0) {
+//         n++;
+//         newElements = await page.$$(nElement.replace('n', n));
+//     }
+//
+//     // If n-highest has increased by one, then a new response is on the page
+//     if (newElements.length > 0) {
+//         const lastElement = newElements[newElements.length - 1];
+//         const currentResponse = await lastElement.textContent();
+//         console.log(currentResponse);
+//
+//         // Append output to the file
+//         fs.appendFileSync(filePath, `\n{"output":${currentResponse}}`);
+//
+//         // Rename the file to append a "t" at the end of its name
+//         await renameAsync(filePath, `${filePath}t`);
+//     }
+// }
+//
+//
+//
+//
+
+
+
+
+
+
+
+
+
+// Function to check for new files in the input folder
+function checkForNewFiles() {
+    // Read all files in the input folder
+    const files = fs.readdirSync(inputFolderPath);
+
+    // For each file that doesn't end with a "t", process the file
+    files.forEach((file) => {
+        if (!file.endsWith('t')) {
+            processFile(path.join(inputFolderPath, file));
+        }
+    });
+
+    // Check for new files again after a delay
+    setTimeout(checkForNewFiles, 1000);
+}
+
+// Start checking for new files
+checkForNewFiles();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// prerequisites:
+// chrome browser
+// chathub extension
+
+// features
+// crawls chathub and communicates with an endpoint through a localhost url...
+// grabs from cli and passes to program, vice versa //
+
+// const playwright = require('playwright');
+//
+// (async () => {
+//     const browser = await playwright.chromium.launch();
+//     const context = await browser.newContext();
+//     const page = await context.newPage();
+//     await page.goto('https://www.example.com'); // replace with your URL
+//     await browser.close();
+// })();
+
+// executablePath: '/path/to/your/Google Chrome',
+// userDataDir: '/Users/xcode/Library/Application Support/Google/Chrome/Profile 4/',
+// const browser = await chromium.launch({
+//     executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+//     userDataDir: '/Users/xcode/Library/Application Support/Google/Chrome/Profile 4/',
+// });
+// const userDataDir = '/Users/xcode/Library/Application Support/Google/Chrome/Profile 4/';
+// const context = await chromium.launchPersistentContext(userDataDir);
+
+
+
+
+
+
+// const { chromium } = require('playwright');
+// const readline = require('readline');
+
+// const rl = readline.createInterface({
+//     input: process.stdin,
+//     output: process.stdout
+// });
+
+// (async () => {
+//     // const browser = await chromium.launch({ headless: false });
+//     // const context = await browser.newContext();
+//     // const page = await context.newPage();
+//     // await page.goto('https://chat.openai.com'); // replace with your chatbot page
+
+//     const browser = await chromium.launch({ headless: false });
+//     const page = await browser.newPage();
+//     await page.goto('https://chat.openai.com'); // replace with your chatbot page
+
+//     const processInput = async () => {
+//         rl.question('Enter your input: ', async (input) => {
+//             if (input) {
+//                 rl.question('Have you logged in? (yes/y): ', async (answer) => {
+//                     if (answer.toLowerCase().includes('y')) {
+//                         const selectorTwo = '#prompt-textarea';
+//                         await page.waitForSelector(selectorTwo, { state: 'visible' });
+//                         await page.fill(selectorTwo, input);
+//                         await page.keyboard.press('Enter')
+
+//                         const elements = await page.$$('#__next > div.relative.z-0.flex.h-full.w-full.overflow-hidden > div.relative.flex.h-full.max-w-full.flex-1.flex-col.overflow-hidden > main > div.flex.h-full.flex-col > div.flex-1.overflow-hidden > div > div > div > div > div > div > div.relative.flex.w-\\[calc\\(100\\%-50px\\)\\].flex-col.gizmo\\:w-full.lg\\:w-\\[calc\\(100\\%-115px\\)\\].agent-turn > div.flex-col.gap-1.md\\:gap-3 > div.flex.flex-grow.flex-col.max-w-full.gap-3.gizmo\\:gap-0');
+//                         const lastElement = elements[elements.length - 1];
+//                         await lastElement.waitForElementState('attached');
+
+//                         const response = await page.evaluate((element) => {
+//                             return element.innerText;
+//                         }, lastElement);
+
+//                         console.log('Response: ', response);
+//                         processInput(); // call the function again after the workflow has finished
+//                     }
+//                 });
+//             }
+//         });
+//     }
+
+//     processInput(); // start the workflow
+// })();
+
+
+
+
+// //
+//
+// const { chromium } = require('playwright');
+// const readline = require('readline');
+//
+// const rl = readline.createInterface({
+//     input: process.stdin,
+//     output: process.stdout
+// });
+//
+// (async () => {
+//     const browser = await chromium.launch({ headless: false });
+//     const context = await browser.newContext();
+//     const page = await context.newPage();
+//     await page.goto('https://chat.openai.com'); // replace with your chatbot page
+//
+//     while (true) {
+//         rl.question('Enter your input: ', async (input) => {
+//             if (input) {
+//                 rl.question('Have you logged in? (yes/y): ', async (answer) => {
+//                     if (answer.toLowerCase().includes('y')) {
+//                         const selectorTwo = '#prompt-textarea';
+//                         await page.waitForSelector(selectorTwo, { state: 'visible' });
+//                         await page.fill(selectorTwo, input);
+//                         await page.keyboard.press('Enter')
+//
+//                         const elements = await page.$$('#__next > div.relative.z-0.flex.h-full.w-full.overflow-hidden > div.relative.flex.h-full.max-w-full.flex-1.flex-col.overflow-hidden > main > div.flex.h-full.flex-col > div.flex-1.overflow-hidden > div > div > div > div > div > div > div.relative.flex.w-\\[calc\\(100\\%-50px\\)\\].flex-col.gizmo\\:w-full.lg\\:w-\\[calc\\(100\\%-115px\\)\\].agent-turn > div.flex-col.gap-1.md\\:gap-3 > div.flex.flex-grow.flex-col.max-w-full.gap-3.gizmo\\:gap-0');
+//                         const lastElement = elements[elements.length - 1];
+//                         await lastElement.waitForElementState('attached');
+//
+//                         const response = await page.evaluate((element) => {
+//                             return element.innerText;
+//                         }, lastElement);
+//
+//                         console.log('Response: ', response);
+//                     }
+//                 });
+//             }
+//         });
+//     }
+// })();
+
+
+//
+// const { chromium } = require('playwright');
+// const readline = require('readline');
+//
+// const rl = readline.createInterface({
+//     input: process.stdin,
+//     output: process.stdout
+// });
+//
+// async () => {
+//     const browser = await chromium.launch({ headless: false });
+//     const context = await browser.newContext();
+//     const page = await context.newPage();
+//     await page.goto('https://chat.openai.com'); // replace with your chatbot page
+//
+//     while (true) {
+//         rl.question('Enter your input: ', async (input) => {
+//             if (input) {
+//                 rl.question('Have you logged in? (yes/y): ', (answer) => {
+//                     if (answer.toLowerCase().includes('y')) {
+//                         const selectorTwo = '#prompt-textarea';
+//                         await page.waitForSelector(selectorTwo, { state: 'visible' });
+//                         await page.fill(selectorTwo, input);
+//                         await page.keyboard.press('Enter')
+//
+//                         const elements = await page.$$('#__next > div.relative.z-0.flex.h-full.w-full.overflow-hidden > div.relative.flex.h-full.max-w-full.flex-1.flex-col.overflow-hidden > main > div.flex.h-full.flex-col > div.flex-1.overflow-hidden > div > div > div > div > div > div > div.relative.flex.w-\\[calc\\(100\\%-50px\\)\\].flex-col.gizmo\\:w-full.lg\\:w-\\[calc\\(100\\%-115px\\)\\].agent-turn > div.flex-col.gap-1.md\\:gap-3 > div.flex.flex-grow.flex-col.max-w-full.gap-3.gizmo\\:gap-0');
+//                         const lastElement = elements[elements.length - 1];
+//                         await lastElement.waitForElementState('attached');
+//
+//                         const response = await page.evaluate((element) => {
+//                             return element.innerText;
+//                         }, lastElement);
+//
+//                         console.log('Response: ', response);
+//                     }
+//                 });
+//             }                    }
+//                 });
+//             }
+//
+// })();
+//
+
+//
+// const { chromium } = require('playwright');
+// const readline = require('readline');
+//
+// const rl = readline.createInterface({
+//     input: process.stdin,
+//     output: process.stdout
+// });
+//
+// (async () => {
+//     const browser = await chromium.launch({ headless: false });
+//     const context = await browser.newContext();
+//     const page = await context.newPage();
+//     await page.goto('https://chat.openai.com'); // replace with your chatbot page
+//
+//     while (true) {
+//         rl.question('Enter your input: ', async (input) => {
+//             if (input) {
+//                 // replace with your chatbot interaction code
+//                 // await page.fill('#chat-input', input);
+//                 // await page.click('#send-button');
+//                 //
+//                 // const selector = '#app > main > aside > div.flex.flex-col.gap-[13px].mt-12.overflow-y-auto.scrollbar-none > a.rounded-[10px].w-full.pl-3.flex.flex-row.gap-3.items-center.shrink-0.py-[11px].bg-white.text-primary-text.dark\:bg-primary-blue';
+//                 // await page.waitForSelector(selector, { state: 'visible' });
+//                 // await page.click(selector);
+//
+//                 const selectorTwo = '#prompt-textarea';
+//                 await page.waitForSelector(selectorTwo, { state: 'visible' });
+//                 await page.fill(selectorTwo, input);
+//                 await page.keyboard.press('Enter')
+//
+//                 const selectorThree = await page.$$('#__next > div.relative.z-0.flex.h-full.w-full.overflow-hidden > div.relative.flex.h-full.max-w-full.flex-1.flex-col.overflow-hidden > main > div.flex.h-full.flex-col > div.flex-1.overflow-hidden > div > div > div > div > div > div > div.relative.flex.w-\\[calc\\(100\\%-50px\\)\\].flex-col.gizmo\\:w-full.lg\\:w-\\[calc\\(100\\%-115px\\)\\].agent-turn > div.flex-col.gap-1.md\\:gap-3 > div.flex.flex-grow.flex-col.max-w-full.gap-3.gizmo\\:gap-0');
+//                 const lastElement = elements[elements.length - 1];
+//                 await page.waitForSelector(selectorThree, { state: 'attached' });
+//
+//
+//                 // const selectorThree = '#app > main > div > div > div > div.react-scroll-to-bottom--css-emnsp-79elbk.overflow-auto.h-full > div > div';
+//
+//                 const response = await page.evaluate((selectorThree) => {
+//                     const parent = document.querySelector(selectorThree);
+//                     const children = Array.from(parent.children);
+//                     const evenChildren = children.filter((_, index) => index % 2 === 0);
+//                     const lastEvenChild = evenChildren[evenChildren.length - 1];
+//                     const html = lastEvenChild.innerHTML;
+//
+//                     const tempElement = document.createElement('div');
+//                     tempElement.innerHTML = html;
+//                     return tempElement.innerText;
+//                 }, selectorThree);
+//
+//                 console.log('Response: ', response);
+//             }
+//         });
+//     }
+// })();
+
+
+//
+//
+// const { chromium } = require('playwright');
+// const axios = require('axios');
+// const { spawn } = require('child_process');
+//
+//
+// (async () => {
+//     const server = spawn('node', ['server.js']);
+//     const browser = await chromium.launch(
+//
+//     );
+//
+//     const context = await browser.newContext();
+//     const page = await context.newPage();
+//     await page.goto('chrome-extension://iaakpnchhognanibcahlpcplchdfmgma/app.html#/chat/chatgpt'); // replace with your chatbot page
+//
+//     while (true) {
+//         const input = await axios.get('http://localhost:3000/input');
+//         if (input.data) {
+//
+//             // replace with your chatbot interaction code
+//             await page.fill('#chat-input', input.data);
+//             await page.click('#send-button');
+//             // const response = await page.textContent('#chat-response');
+//
+//             const selector = '#app > main > aside > div.flex.flex-col.gap-[13px].mt-12.overflow-y-auto.scrollbar-none > a.rounded-[10px].w-full.pl-3.flex.flex-row.gap-3.items-center.shrink-0.py-[11px].bg-white.text-primary-text.dark\:bg-primary-blue';
+//
+//             await page.waitForSelector(selector, { state: 'visible' });
+//             await page.click(selector);
+//
+//             const selectorTwo = '#app > main > div > div > div > div.mt-3.flex.flex-col.mx-5.mb-3 > form > div.w-full.flex.flex-col.justify-center > textarea';
+//             // const input = 'Your input here'; // replace with your input
+//
+//             await page.waitForSelector(selectorTwo, { state: 'visible' });
+//             await page.fill(selectorTwo, input);
+//             await page.keyboard.press('Enter')
+//
+//             const selectorThree = '#app > main > div > div > div > div.react-scroll-to-bottom--css-emnsp-79elbk.overflow-auto.h-full > div > div';
+//
+//             await page.waitForSelector(selectorThree, { state: 'attached' });
+//
+//             const response = await page.evaluate((selectorThree) => {
+//                 const parent = document.querySelector(selectorThree);
+//                 const children = Array.from(parent.children);
+//                 const evenChildren = children.filter((_, index) => index % 2 === 0);
+//                 const lastEvenChild = evenChildren[evenChildren.length - 1];
+//                 const html = lastEvenChild.innerHTML;
+//
+//
+//                 const tempElement = document.createElement('div');
+//                 tempElement.innerHTML = html;
+//                 return tempElement.innerText;
+//             }, selectorThree);
+//
+//             await axios.post('http://localhost:3000/response', response);
+//
+//
+//             await browser.close();
+//
+//         }
+//     }
+// })();
+
+// Create a new DOM element, set its innerHTML to the HTML string,
+// and then return its innerText, which will be the text representation of the HTML.
+// const puppeteer = require('puppeteer');
+//
+// (async () => {
+//     const browser = await puppeteer.launch();
+//     const page = await browser.newPage();
+//
+//     await page.goto('https://www.example.com', { waitUntil: 'networkidle0' }); // replace with your URL
+//
+//     const selector = '#app > main > aside > div.flex.flex-col.gap-[13px].mt-12.overflow-y-auto.scrollbar-none > a.rounded-[10px].w-full.pl-3.flex.flex-row.gap-3.items-center.shrink-0.py-[11px].bg-white.text-primary-text.dark\:bg-primary-blue';
+//
+//     await page.waitForSelector(selector, { visible: true });
+//     await page.click(selector);
+//
+//     await browser.close();
+// })();
+//
+
+
+
+// const { chromium } = require('playwright');
+//
+// (async () => {
+//     const browser = await chromium.launch();
+//     const context = await browser.newContext();
+//     const page = await context.newPage();
+//
+//     await page.goto('https://www.example.com'); // replace with your URL
+//
+//     const selector = '#app > main > aside > div.flex.flex-col.gap-[13px].mt-12.overflow-y-auto.scrollbar-none > a.rounded-[10px].w-full.pl-3.flex.flex-row.gap-3.items-center.shrink-0.py-[11px].bg-white.text-primary-text.dark\:bg-primary-blue';
+//
+//     await page.waitForSelector(selector, { state: 'visible' });
+//     await page.click(selector);
+//
+//     await browser.close();
+// })();
